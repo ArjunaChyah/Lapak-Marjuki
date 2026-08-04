@@ -1,0 +1,91 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CategoryEnum {
+  makanan
+  minuman
+  gorengan
+}
+
+enum DeliveryMethodEnum {
+  ambil_sendiri
+  diantar
+}
+
+enum PaymentMethodEnum {
+  cash
+  transfer
+  qris
+}
+
+enum OrderStatusEnum {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id           String       @id @default(cuid())
+  name         String
+  category     CategoryEnum
+  categoryId   String?
+  price        Float
+  description  String       @db.Text
+  image        String       @db.Text
+  isBestSeller Boolean      @default(false)
+  isFeatured   Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  orderItems   OrderItem[]
+
+  Category Category? @relation(fields: [categoryId], references: [id])
+}
+
+model Order {
+  id              String             @id @default(cuid())
+  orderNumber     String             @unique
+  fullName        String
+  phoneNumber     String
+  deliveryAddress String?            @db.Text
+  notes           String?            @db.Text
+  deliveryMethod  DeliveryMethodEnum @default(diantar)
+  paymentMethod   PaymentMethodEnum  @default(cash)
+  subtotal        Float
+  status          OrderStatusEnum    @default(PENDING)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Float
+  Order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Inquiry {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
