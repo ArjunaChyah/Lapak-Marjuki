@@ -176,7 +176,7 @@ export default function AdminDashboardPage() {
               Pesanan Masuk Terbaru
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400">
-              Daftar transaksi pesanan pelanggan real-time.
+              Daftar transaksi pesanan pelanggan.
             </p>
           </div>
           <Link
