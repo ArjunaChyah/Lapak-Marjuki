@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
         
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-orange-100 dark:border-zinc-800 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pendapatan (Live)</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pendapatan</span>
             <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
               {formatRupiahCompact(totalRevenue)}
             </div>
@@ -129,11 +129,11 @@ export default function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-orange-100 dark:border-zinc-800 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pesanan (Live)</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pesanan</span>
             <div className="text-2xl font-black text-stone-900 dark:text-white mt-1">
               {totalOrders} Pesanan
             </div>
-            <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 block">Tersambung ke MySQL</span>
+            <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 block">Hari ini</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-zinc-800 text-orange-600 dark:text-orange-400 flex items-center justify-center">
             <ShoppingBag className="w-6 h-6" />
@@ -173,10 +173,10 @@ export default function AdminDashboardPage() {
         <div className="flex items-center justify-between border-b border-orange-100 dark:border-zinc-800 pb-4">
           <div>
             <h2 className="text-lg font-bold text-stone-900 dark:text-white">
-              Pesanan Masuk Terbaru (Live Dynamic Data)
+              Pesanan Masuk Terbaru
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400">
-              Daftar transaksi pelanggan real-time tersambung ke database MySQL.
+              Daftar transaksi pesanan pelanggan real-time.
             </p>
           </div>
           <Link
