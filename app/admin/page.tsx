@@ -4,20 +4,37 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { STORE_CONFIG, PRODUCTS } from '@/lib/config';
+import { STORE_CONFIG } from '@/lib/config';
 import { formatRupiahCompact } from '@/lib/formatters';
-import { ShoppingBag, TrendingUp, Clock, CheckCircle2, PackageCheck, Users, ShieldCheck, ArrowUpRight, CreditCard, Lock, LogOut } from 'lucide-react';
+import { ShoppingBag, TrendingUp, Clock, CheckCircle2, PackageCheck, Users, ShieldCheck, ArrowUpRight, CreditCard, Lock, RefreshCw } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { role, user, logout } = useAuth();
 
-  const [stats, setStats] = useState({
-    totalRevenue: 248000,
-    totalOrders: 18,
-    pendingOrders: 3,
-    completedOrders: 15,
-  });
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const fetchLiveOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/orders');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.orders)) {
+        setOrders(data.orders);
+      }
+    } catch (e) {
+      console.error('Error loading dashboard orders:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (role === 'admin') {
+      fetchLiveOrders();
+    }
+  }, [role]);
 
   if (role !== 'admin') {
     return (
@@ -42,12 +59,13 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const recentOrders = [
-    { id: 'WM-849201', customer: 'Budi Santoso', total: 24000, method: 'QRIS', status: 'CONFIRMED', time: '10 menit lalu' },
-    { id: 'WM-849198', customer: 'Siti Rahma', total: 18000, method: 'Transfer BCA', status: 'CONFIRMED', time: '25 menit lalu' },
-    { id: 'WM-849195', customer: 'Dewi Lestari', total: 32000, method: 'Cash / Tunai', status: 'PENDING', time: '40 menit lalu' },
-    { id: 'WM-849190', customer: 'Rudi Hermawan', total: 16000, method: 'QRIS', status: 'COMPLETED', time: '1 jam lalu' },
-  ];
+  // Calculate live dynamic metrics from MySQL data
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.subtotal || 0), 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.status === 'DIPROSES').length;
+  const completedOrders = orders.filter(o => o.status === 'COMPLETED' || o.status === 'CONFIRMED').length;
+
+  const displayOrders = orders.length > 0 ? orders.slice(0, 5) : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
@@ -63,11 +81,18 @@ export default function AdminDashboardPage() {
             Panel Pengelola {STORE_CONFIG.name}
           </h1>
           <p className="text-sm text-stone-600 dark:text-stone-400">
-            Selamat datang Ibu Yulia. Pantau pesanan masuk, pendapatan, dan stok menu hari ini.
+            Selamat datang Ibu Yulia. Pantau pesanan masuk real-time, pendapatan, dan stok menu hari ini.
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            onClick={fetchLiveOrders}
+            className="p-2.5 rounded-xl bg-orange-100 dark:bg-zinc-800 text-orange-600 dark:text-orange-400 hover:bg-orange-200 transition"
+            title="Refresh Data Live"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
           <Link
             href="/admin/orders"
             className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold shadow-md flex items-center space-x-2 transition"
@@ -84,17 +109,17 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Metric Cards Grid - LIVE MYSQL DATA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-orange-100 dark:border-zinc-800 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pendapatan Hari Ini</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pendapatan (Live)</span>
             <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-              {formatRupiahCompact(stats.totalRevenue)}
+              {formatRupiahCompact(totalRevenue)}
             </div>
             <span className="text-[11px] text-emerald-600 font-bold flex items-center mt-1">
-              <TrendingUp className="w-3.5 h-3.5 mr-1" /> +14.2% dari kemarin
+              <TrendingUp className="w-3.5 h-3.5 mr-1" /> Terupdate Real-Time
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -104,11 +129,11 @@ export default function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-orange-100 dark:border-zinc-800 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pesanan</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Total Pesanan (Live)</span>
             <div className="text-2xl font-black text-stone-900 dark:text-white mt-1">
-              {stats.totalOrders} Pesanan
+              {totalOrders} Pesanan
             </div>
-            <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 block">Hari ini</span>
+            <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 block">Tersambung ke MySQL</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-zinc-800 text-orange-600 dark:text-orange-400 flex items-center justify-center">
             <ShoppingBag className="w-6 h-6" />
@@ -119,7 +144,7 @@ export default function AdminDashboardPage() {
           <div>
             <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Perlu Diproses</span>
             <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
-              {stats.pendingOrders} Pesanan
+              {pendingOrders} Pesanan
             </div>
             <span className="text-[11px] text-amber-600 font-bold mt-1 block">Segera siapkan</span>
           </div>
@@ -130,11 +155,11 @@ export default function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-orange-100 dark:border-zinc-800 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Pesanan Selesai</span>
+            <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">Pesanan Selesai / Lunas</span>
             <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-              {stats.completedOrders} Pesanan
+              {completedOrders} Pesanan
             </div>
-            <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 block">Telah diterima</span>
+            <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 block">Telah dikonfirmasi</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
             <PackageCheck className="w-6 h-6" />
@@ -143,61 +168,78 @@ export default function AdminDashboardPage() {
 
       </div>
 
-      {/* Recent Orders Table */}
+      {/* Recent Orders Live Table */}
       <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-orange-100 dark:border-zinc-800 shadow-md space-y-6">
         <div className="flex items-center justify-between border-b border-orange-100 dark:border-zinc-800 pb-4">
           <div>
             <h2 className="text-lg font-bold text-stone-900 dark:text-white">
-              Pesanan Masuk Terbaru (Midtrans Payment Verified)
+              Pesanan Masuk Terbaru (Live Dynamic Data)
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400">
-              Daftar pesanan pelanggan beserta status pembayaran Midtrans.
+              Daftar transaksi pelanggan real-time tersambung ke database MySQL.
             </p>
           </div>
           <Link
             href="/admin/orders"
             className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center space-x-1"
           >
-            <span>Lihat Semua</span>
+            <span>Kelola Semua Pesanan</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-orange-100 dark:border-zinc-800 text-stone-500 dark:text-stone-400">
-                <th className="py-3 px-2">No. Nota</th>
-                <th className="py-3 px-2">Pelanggan</th>
-                <th className="py-3 px-2">Pembayaran</th>
-                <th className="py-3 px-2">Total</th>
-                <th className="py-3 px-2">Status</th>
-                <th className="py-3 px-2">Waktu</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-orange-100 dark:divide-zinc-800">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-orange-50/50 dark:hover:bg-zinc-800/50 transition">
-                  <td className="py-3.5 px-2 font-bold text-orange-600 dark:text-orange-400">{order.id}</td>
-                  <td className="py-3.5 px-2 font-medium text-stone-900 dark:text-white">{order.customer}</td>
-                  <td className="py-3.5 px-2 text-stone-600 dark:text-stone-300">{order.method}</td>
-                  <td className="py-3.5 px-2 font-extrabold text-stone-900 dark:text-white">{formatRupiahCompact(order.total)}</td>
-                  <td className="py-3.5 px-2">
-                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                      order.status === 'CONFIRMED'
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                        : order.status === 'PENDING'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-2 text-stone-400 text-xs">{order.time}</td>
+          {loading ? (
+            <div className="py-8 text-center text-xs text-stone-400">Memuat data pesanan live...</div>
+          ) : displayOrders.length === 0 ? (
+            <div className="py-8 text-center text-xs text-stone-500 space-y-1">
+              <p className="font-bold">Belum Ada Pesanan Masuk di Database</p>
+              <p className="text-[11px]">Silakan coba buat pesanan simulasi di halaman Checkout untuk melihat datanya di sini secara live!</p>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-orange-100 dark:border-zinc-800 text-stone-500 dark:text-stone-400">
+                  <th className="py-3 px-2">No. Nota</th>
+                  <th className="py-3 px-2">Pelanggan</th>
+                  <th className="py-3 px-2">Pembayaran</th>
+                  <th className="py-3 px-2">Total</th>
+                  <th className="py-3 px-2">Status</th>
+                  <th className="py-3 px-2">Waktu</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-orange-100 dark:divide-zinc-800">
+                {displayOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-orange-50/50 dark:hover:bg-zinc-800/50 transition">
+                    <td className="py-3.5 px-2 font-bold text-orange-600 dark:text-orange-400">
+                      {order.orderNumber || order.id}
+                    </td>
+                    <td className="py-3.5 px-2 font-medium text-stone-900 dark:text-white">
+                      {order.fullName}
+                    </td>
+                    <td className="py-3.5 px-2 text-stone-600 dark:text-stone-300">
+                      {String(order.paymentMethod).toUpperCase()}
+                    </td>
+                    <td className="py-3.5 px-2 font-extrabold text-stone-900 dark:text-white">
+                      {formatRupiahCompact(order.subtotal)}
+                    </td>
+                    <td className="py-3.5 px-2">
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        order.status === 'CONFIRMED' || order.status === 'COMPLETED'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-2 text-stone-400 text-xs">
+                      {new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
