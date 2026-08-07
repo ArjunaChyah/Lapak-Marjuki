@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { STORE_CONFIG } from '@/lib/config';
-import { ShoppingBag, Sun, Moon, Menu, X, UtensilsCrossed, PhoneCall } from 'lucide-react';
+import { ShoppingBag, Sun, Moon, Menu, X, UtensilsCrossed, ShieldCheck, User, LogOut, LogIn } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
   const { totalItems } = useCart();
   const { theme, toggleTheme } = useTheme();
+  const { user, role, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -51,14 +53,14 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
+          <nav className="hidden lg:flex items-center space-x-1">
             {navLinks.map((link) => {
               const active = isActive(link.href);
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`relative px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`relative px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                     active
                       ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 dark:bg-orange-600'
                       : 'text-stone-700 dark:text-stone-200 hover:bg-orange-100/60 dark:hover:bg-zinc-800/80 hover:text-orange-600 dark:hover:text-orange-400'
@@ -67,7 +69,7 @@ export function Navbar() {
                   <span className="flex items-center space-x-1">
                     <span>{link.name}</span>
                     {link.badge !== undefined && link.badge > 0 && (
-                      <span className="ml-1 px-2 py-0.5 text-xs font-extrabold rounded-full bg-amber-400 text-stone-900 shadow">
+                      <span className="ml-1 px-1.5 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-400 text-stone-900 shadow">
                         {link.badge}
                       </span>
                     )}
@@ -77,8 +79,9 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* Right Action Icons: Cart, Dark Mode Toggle, Mobile Toggle */}
-          <div className="flex items-center space-x-3">
+          {/* Right Action Controls */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            
             {/* Quick Cart Button */}
             <Link
               href="/cart"
@@ -87,7 +90,7 @@ export function Navbar() {
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-stone-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900 animate-pulse-subtle">
+                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-stone-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">
                   {totalItems}
                 </span>
               )}
@@ -106,64 +109,106 @@ export function Navbar() {
               )}
             </button>
 
-            {/* Quick Phone Call Button */}
-            <a
-              href={`tel:${STORE_CONFIG.phone}`}
-              className="hidden lg:flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20"
-            >
-              <PhoneCall className="w-4 h-4" />
-              <span>Hubungi Kami</span>
-            </a>
+            {/* Auth Login / Role Pill */}
+            {role === 'admin' ? (
+              <div className="flex items-center space-x-2">
+                <Link
+                  href="/admin"
+                  className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md flex items-center space-x-1.5 transition"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="hidden sm:inline">Admin Ibu Yulia</span>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 hover:bg-rose-200 transition"
+                  title="Keluar / Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : role === 'client' ? (
+              <div className="flex items-center space-x-2">
+                <div className="px-3 py-2 rounded-xl bg-orange-100 dark:bg-zinc-800 text-stone-900 dark:text-white text-xs font-bold flex items-center space-x-1.5">
+                  <User className="w-4 h-4 text-orange-600" />
+                  <span className="max-w-[100px] truncate">{user?.name}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="p-2 rounded-xl bg-stone-100 dark:bg-zinc-800 text-stone-500 hover:text-rose-600 transition"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1.5">
+                <Link
+                  href="/login"
+                  className="px-3 py-2 rounded-xl bg-orange-100 dark:bg-zinc-800 text-orange-700 dark:text-orange-300 hover:bg-orange-200 text-xs font-bold transition flex items-center space-x-1"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Pelanggan</span>
+                </Link>
+                <Link
+                  href="/admin/login"
+                  className="px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold shadow-md flex items-center space-x-1 transition"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </Link>
+              </div>
+            )}
 
-            {/* Hamburger Button for Mobile */}
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-xl bg-orange-100 dark:bg-zinc-800 text-stone-800 dark:text-stone-200 hover:bg-orange-200 dark:hover:bg-zinc-700 transition"
-              aria-label="Buka Menu Navigasi"
+              className="lg:hidden p-2.5 rounded-xl bg-orange-100/70 dark:bg-zinc-800 text-stone-700 dark:text-stone-200"
+              aria-label="Toggle Menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
+
           </div>
+
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-orange-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg px-4 pt-3 pb-6 space-y-2 animate-fade-in shadow-xl">
-          {navLinks.map((link) => {
-            const active = isActive(link.href);
-            return (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl text-base font-medium transition ${
-                  active
-                    ? 'bg-orange-600 text-white font-bold shadow-md'
-                    : 'text-stone-700 dark:text-stone-200 hover:bg-orange-100 dark:hover:bg-zinc-800'
-                }`}
-              >
-                <span>{link.name}</span>
-                {link.badge !== undefined && link.badge > 0 && (
-                  <span className="px-2.5 py-0.5 text-xs font-black rounded-full bg-amber-400 text-stone-900">
-                    {link.badge} Item
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-          <div className="pt-2 border-t border-orange-100 dark:border-zinc-800 flex items-center justify-between px-2">
-            <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
-              {STORE_CONFIG.address.city}, Indonesia
-            </span>
-            <a
-              href={`https://wa.me/${STORE_CONFIG.whatsappNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 underline"
+        <div className="lg:hidden border-t border-orange-200/50 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg px-4 pt-3 pb-6 space-y-2">
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              href={link.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold text-stone-800 dark:text-stone-200 hover:bg-orange-100/60 dark:hover:bg-zinc-800"
             >
-              Chat WA Langsung
-            </a>
+              <span>{link.name}</span>
+              {link.badge !== undefined && link.badge > 0 && (
+                <span className="px-2 py-0.5 text-xs font-black rounded-full bg-amber-400 text-stone-950">
+                  {link.badge}
+                </span>
+              )}
+            </Link>
+          ))}
+
+          <div className="pt-3 border-t border-orange-100 dark:border-zinc-800 flex items-center justify-between px-2">
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-xs font-bold text-stone-600 dark:text-stone-300 hover:underline"
+            >
+              Login Pelanggan
+            </Link>
+            <Link
+              href="/admin/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center space-x-1"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Login Admin Ibu Yulia</span>
+            </Link>
           </div>
         </div>
       )}
