@@ -95,10 +95,10 @@ export default function AdminOrdersPage() {
             <span>Kembali ke Dashboard</span>
           </Link>
           <h1 className="text-3xl font-black text-stone-900 dark:text-white">
-            Kelola Pesanan Masuk (Live MySQL Data)
+            Kelola Pesanan Masuk
           </h1>
           <p className="text-sm text-stone-600 dark:text-stone-400">
-            Daftar pesanan masuk real-time dari pelanggan. Perubahan status di sini langsung tersambung secara live!
+            Daftar pesanan masuk real-time dari pelanggan. Perbarui status pesanan di sini.
           </p>
         </div>
 
