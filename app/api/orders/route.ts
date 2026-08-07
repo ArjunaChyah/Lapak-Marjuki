@@ -1,8 +1,35 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { buildWhatsAppMessage, generateWhatsAppUrl } from '@/lib/formatters';
-import { DeliveryMethodEnum, PaymentMethodEnum } from '@prisma/client';
+import { DeliveryMethodEnum, PaymentMethodEnum, OrderStatusEnum } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
+// GET: Fetch all live orders for Admin Dashboard
+export async function GET() {
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: {
+          include: {
+            Product: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true, orders });
+  } catch (error) {
+    console.warn('MySQL order fetch notice (returning mock fallback data):', error);
+    return NextResponse.json({
+      success: true,
+      orders: [],
+    });
+  }
+}
+
+// POST: Create a new order
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -17,7 +44,9 @@ export async function POST(request: Request) {
     }
 
     const orderNumber = `WM-${Date.now().toString().slice(-6)}`;
+    const deliveryFee = orderDetails.deliveryMethod === 'diantar' ? 5000 : 0;
     const subtotal = cart.reduce((sum: number, item: any) => sum + (item.product.price * item.quantity), 0);
+    const grandTotal = subtotal + deliveryFee;
 
     const deliveryMethod = orderDetails.deliveryMethod === 'ambil-sendiri'
       ? DeliveryMethodEnum.ambil_sendiri
@@ -29,7 +58,7 @@ export async function POST(request: Request) {
       ? PaymentMethodEnum.qris
       : PaymentMethodEnum.cash;
 
-    // Save order in MySQL if DB is active
+    // Save order in MySQL database
     let savedOrder = null;
     try {
       savedOrder = await prisma.order.create({
@@ -41,7 +70,8 @@ export async function POST(request: Request) {
           notes: orderDetails.notes || null,
           deliveryMethod,
           paymentMethod,
-          subtotal,
+          subtotal: grandTotal,
+          status: 'PENDING',
           items: {
             create: cart.map((item: any) => ({
               productId: item.product.id,
@@ -52,7 +82,7 @@ export async function POST(request: Request) {
         },
       });
     } catch (dbError) {
-      console.warn('MySQL order record notice (using direct payload):', dbError);
+      console.warn('MySQL order record notice:', dbError);
     }
 
     const message = buildWhatsAppMessage(cart, orderDetails);
@@ -68,5 +98,32 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create order error:', error);
     return NextResponse.json({ success: false, error: 'Gagal membuat pesanan' }, { status: 500 });
+  }
+}
+
+// PATCH: Update order status in MySQL from Admin Dashboard
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { orderId, status } = body;
+
+    if (!orderId || !status) {
+      return NextResponse.json({ success: false, error: 'orderId and status required' }, { status: 400 });
+    }
+
+    let mappedStatus: OrderStatusEnum = OrderStatusEnum.PENDING;
+    if (status === 'CONFIRMED') mappedStatus = OrderStatusEnum.CONFIRMED;
+    if (status === 'COMPLETED') mappedStatus = OrderStatusEnum.COMPLETED;
+    if (status === 'CANCELLED') mappedStatus = OrderStatusEnum.CANCELLED;
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: mappedStatus },
+    });
+
+    return NextResponse.json({ success: true, order: updated });
+  } catch (error) {
+    console.error('Update order status error:', error);
+    return NextResponse.json({ success: false, error: 'Gagal memperbarui status' }, { status: 500 });
   }
 }

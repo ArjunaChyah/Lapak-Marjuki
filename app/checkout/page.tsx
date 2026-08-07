@@ -391,27 +391,46 @@ export default function CheckoutPage() {
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
               <p className="font-bold flex items-center space-x-1">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Pembayaran Aman via Midtrans</span>
+                <span>
+                  {formData.paymentMethod === 'cash'
+                    ? 'Pembayaran Tunai / Cash saat Terima'
+                    : 'Pembayaran Aman Online via Midtrans'}
+                </span>
               </p>
               <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                Sistem secara otomatis mengonfirmasi status pembayaran dan meneruskan pesanan ke Ibu Yulia.
+                {formData.paymentMethod === 'cash'
+                  ? 'Pesanan langsung diproses dan dibayar tunai saat makanan diantar/diambil.'
+                  : 'Sistem secara otomatis mengonfirmasi status pembayaran Midtrans dan meneruskan pesanan ke Ibu Yulia.'}
               </p>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center space-x-2 transition hover:scale-[1.02] disabled:opacity-50"
+              className={`w-full py-4 rounded-2xl text-white font-black text-base shadow-xl flex items-center justify-center space-x-2 transition hover:scale-[1.02] disabled:opacity-50 ${
+                formData.paymentMethod === 'cash'
+                  ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/30'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Memproses Midtrans...</span>
+                  <span>Memproses Pesanan...</span>
                 </>
               ) : (
                 <>
-                  <CreditCard className="w-5 h-5" />
-                  <span>Bayar Sekarang via Midtrans</span>
+                  {formData.paymentMethod === 'cash' ? (
+                    <>
+                      <ShoppingBag className="w-5 h-5" />
+                      <span>Bayar Sekarang (Tunai saat Terima)</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      <span>Bayar Sekarang via Midtrans</span>
+                    </>
+                  )}
                 </>
               )}
             </button>
