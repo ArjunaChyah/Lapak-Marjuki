@@ -63,14 +63,40 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleMidtransPayment = async (e: React.FormEvent) => {
+  const handleOrderSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      // 1. Call API to create order in MySQL and generate Midtrans Snap Token
+      // CASH / TUNAI PAYMENT: Process directly without Midtrans Payment Gateway
+      if (formData.paymentMethod === 'cash') {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cart, orderDetails: formData }),
+        });
+
+        const data = await res.json();
+        const orderNumber = data.orderNumber || `WM-${Date.now().toString().slice(-6)}`;
+
+        sessionStorage.setItem('last_order', JSON.stringify({
+          orderNumber,
+          cart,
+          subtotal,
+          deliveryFee,
+          grandTotal,
+          orderDetails: formData,
+          timestamp: new Date().toISOString()
+        }));
+
+        clearCart();
+        router.push(`/order-success?order_id=${orderNumber}&payment=cash`);
+        return;
+      }
+
+      // ONLINE PAYMENT (QRIS / Virtual Account): Process via Midtrans Payment Gateway
       const res = await fetch('/api/payments/snap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,7 +109,6 @@ export default function CheckoutPage() {
         throw new Error(data.error || 'Gagal memproses pembayaran Midtrans');
       }
 
-      // Save order details to sessionStorage for Success Receipt page
       sessionStorage.setItem('last_order', JSON.stringify({
         orderNumber: data.orderNumber,
         cart,
@@ -98,7 +123,6 @@ export default function CheckoutPage() {
 
       clearCart();
 
-      // If redirectUrl exists, open Midtrans Payment page / redirect
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
@@ -106,7 +130,7 @@ export default function CheckoutPage() {
       }
     } catch (err: any) {
       console.error('Payment error:', err);
-      alert(err.message || 'Terjadi kesalahan saat menghubungkan ke Payment Gateway Midtrans');
+      alert(err.message || 'Terjadi kesalahan saat memproses pesanan.');
     } finally {
       setLoading(false);
     }
@@ -127,7 +151,7 @@ export default function CheckoutPage() {
         </p>
       </div>
 
-      <form onSubmit={handleMidtransPayment} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <form onSubmit={handleOrderSubmission} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column: Input Details */}
         <div className="lg:col-span-7 space-y-6">
